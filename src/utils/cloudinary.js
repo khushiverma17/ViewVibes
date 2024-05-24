@@ -2,7 +2,7 @@
 import {v2 as cloudinary} from "cloudinary"
 
 //present in node file system
-import {fs} from "fs"
+import fs from "fs"
 
 
 
