@@ -28,5 +28,24 @@
 
     router.route("/refresh-token").post(refreshAccessToken)
 
+    router.route("/change-password").post(verifyJWT, changeCurrentPassword)
+
+    router.route("/current-user").post(verifyJWT, getCurrentUser)
+
+
+    // PATCH is one of the methods that can be used to request that a server apply partial modifications to a resource
+    router.route("/update-account").patch(verifyJWT, updateAccountDetails)
+
+    router.route("/avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar)
+
+    router.route("/cover-image").patch(verifyJWT, upload.single("/coverImage"), updateUserCoverImage)
+
+
+    //getting details from params url const {username} = req.params
+    
+    router.route("/c/:username").get(verifyJWT, getUserChannelProfile)
+
+    router.route("/history").get(verifyJWT, getWatchHistory)
+
 
     export default router
