@@ -5,6 +5,7 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
 import { response } from "express"
+import mongoose from "mongoose"
 
 
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -482,6 +483,64 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
 
 })
 
+const getWatchHistory = asyncHandler(async(req, res) => {
+
+    const user = await User.aggregate([
+        {
+            $match: {
+                // _id: new mongoose.Types.ObjectId(req.user._id)   //DEPRECATED
+                _id: new mongoose.Types.ObjectId.createFromHexString(req.user._id)
+            },
+        },
+        {
+            $lookup: {
+                //watch history in users contain the video details so from: video model
+                from: "videos",     //videos is the name of collection in mongodb
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                //now in the video model we have owner who is itself a user so fetch details of user in the owner field vis nested pipelines
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            //now the owner contains complete info like username, email, avatar, coverImage, password etc. but we need only some values so use nested pipeline
+                            pipeline:[
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields: {
+                            owner: {
+                                $first: "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, 
+            user[0].watchHistory,
+            "Watch History fetched successfully"
+        )
+    )
+})
+
 
 
 
@@ -495,5 +554,6 @@ export {
     updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,
+    getWatchHistory
 
 }
