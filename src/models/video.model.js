@@ -1,4 +1,4 @@
-import mongoose, { Schema, mongo } from "mongoose";
+import mongoose, { Schema} from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2"
 // mongooseAggregatePaginate is a plugin for Mongoose This plugin extends Mongoose's aggregate method to support pagination. use case for this plugin arises when you perform complex aggregations on MongoDB collections and need to paginate the results.
 
