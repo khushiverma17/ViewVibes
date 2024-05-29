@@ -192,8 +192,8 @@ const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined
+            $unset: {
+                refreshToken: 1
             }
         },
         {
@@ -274,6 +274,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 const changeCurrentPassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword } = req.body
 
+    if(!newPassword){
+        throw new ApiError(400, "New password is not provided")
+    }
+
     const user = await User.findById(req.user?._id)
 
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
@@ -284,7 +288,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     user.password = newPassword
     await user.save({ validateBeforeSave: false })
 
-    return response
+    return res
         .status(200)
         .json(
             new ApiResponse(200, {}, "Password changed successfully")
@@ -403,7 +407,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 const getUserChannelProfile = asyncHandler(async(req, res) => {
 
     const {username} = req.params
-
+    
     if(!username?.trim()){
         throw new ApiError(400, "Username is missing")
     }
@@ -444,9 +448,9 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
                 // search for our own name in the subscribers document of the channel
                 isSubscribed: {
                     $cond: {
-                        $if: {$in: [req.user?._id, "$subscribers.subscriber"]},
-                        $then: true, 
-                        $else: false
+                        if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+                        then: true, 
+                        else: false
                     }
                 }
             }
@@ -488,8 +492,7 @@ const getWatchHistory = asyncHandler(async(req, res) => {
     const user = await User.aggregate([
         {
             $match: {
-                // _id: new mongoose.Types.ObjectId(req.user._id)   //DEPRECATED
-                _id: new mongoose.Types.ObjectId.createFromHexString(req.user._id)
+                _id: new mongoose.Types.ObjectId(req.user._id)
             },
         },
         {
