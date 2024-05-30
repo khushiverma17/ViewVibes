@@ -5,6 +5,8 @@
 
     const router = Router()
 
+
+    // http://localhost:8000/v1/api/users/register
     router.route("/register").post(
         upload.fields([
             {

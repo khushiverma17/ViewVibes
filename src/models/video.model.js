@@ -23,7 +23,7 @@ const videoSchema = new Schema(
             required:true
         },
         thumbnail:{
-            type:duration,  //from cloudnary
+            type:Number,  //from cloudinary
             required:true
         },
         views:{
