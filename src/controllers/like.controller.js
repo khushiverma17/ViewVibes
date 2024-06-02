@@ -6,7 +6,7 @@ import { asyncHandler } from "../utils/asyncHandler.js"
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    //TODO: toggle like on video
+    //toggle like on video
     const { userId } = req.user
     if (!videoId || !userId) {
         throw new ApiError(400, "Video id or user id is not provided")
@@ -39,7 +39,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
 
 const toggleCommentLike = asyncHandler(async (req, res) => {
     const { commentId } = req.params
-    //TODO: toggle like on comment
+    // toggle like on comment
     const { userId } = req.user
 
     if (!commentId || !userId) {
@@ -72,7 +72,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 
 const toggleTweetLike = asyncHandler(async (req, res) => {
     const { tweetId } = req.params
-    //TODO: toggle like on tweet
+    // toggle like on tweet
     const { userId } = req.user
 
     if (!tweetId || !userId) {
@@ -108,7 +108,7 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 )
 
 const getLikedVideos = asyncHandler(async (req, res) => {
-    //TODO: get all liked videos
+    //get all liked videos
 
     const { userId } = req.user
 

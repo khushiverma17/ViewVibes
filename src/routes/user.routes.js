@@ -21,6 +21,7 @@
         registerUser
     )
 
+
     router.route("/login").post(loginUser)
 
     // to give access to these routes only if the user is loggedin (verify using authmiddleware)

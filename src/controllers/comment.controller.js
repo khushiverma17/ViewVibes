@@ -9,7 +9,7 @@ import { Video } from "../models/video.model.js"
 const getVideoComments = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     // It also extracts the page and limit query parameters from the request (req.query)
-    //TODO: get all comments for a video
+    //get all comments for a video
 
     // When a client makes a GET request to a server with query parameters in the URL (e.g., http://example.com/resource?param1=value1&param2=value2), Express parses these parameters and makes them available in the req.query object.If page or limit are not present in req.query, they will default to 1 and 10 respectively.
     const { page = 1, limit = 10 } = req.query
@@ -110,7 +110,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
 })
 
 const addComment = asyncHandler(async (req, res) => {
-    // TODO: add a comment to a video
+    // add a comment to a video
 
     const { content } = req.body
     const { videoId } = req.params
@@ -146,7 +146,7 @@ const addComment = asyncHandler(async (req, res) => {
 })
 
 const updateComment = asyncHandler(async (req, res) => {
-    // TODO: update a comment
+    // update a comment
 
     const { commentId } = req.params  // i will setup route which has placeholder for commentId
     const { content } = req.body  //here content means new content
@@ -189,7 +189,7 @@ const updateComment = asyncHandler(async (req, res) => {
 
 const deleteComment = asyncHandler(async (req, res) => {
 
-    // TODO: delete a comment
+    //  delete a comment
 
     const { commentId } = req.params
 
