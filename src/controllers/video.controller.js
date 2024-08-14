@@ -1,4 +1,5 @@
 import mongoose, { isValidObjectId } from "mongoose"
+
 import { Video } from "../models/video.model.js"
 import { User } from "../models/user.model.js"
 import { Like } from "../models/like.model.js"
@@ -40,11 +41,11 @@ const getAllVideos = asyncHandler(async (req, res) => {
     })
 
 
-    pipeline.push({
-        $match: {
-            isPublished: true
-        }
-    })
+    // pipeline.push({
+    //     $match: {
+    //         isPublished: true
+    //     }
+    // })
 
 
     //sortBy can be views, createdAt, duration
@@ -103,33 +104,41 @@ const getAllVideos = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(200, video, "Videos fetched successfully")
         )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
+    // console.log("Printing request from the frontend");
+    console.log("Req.files is: ", req.files);
+    
+    
+    // console.log(req.body);
+
+    // console.log(req.files)
+    
     const { title, description } = req.body
+    // console.log("hello");
+    
     // get video, upload to cloudinary, create video
 
     if (!title || !description) {
         throw new ApiError(400, "Title or Description is not provided")
     }
+    // if(req.files){
+    //     console.log(req.files);
+        
+    // }
 
-    const videoFileLocalPath = req.files?.videoFile[0].path
+
+
     const thumnailFileLocalPath = req.files?.thumbnail[0].path
+    // const videoFileLocalPath = req.files?.videoFile[0].path
+    const videoFileLocalPath = req.files?.video[0].path //I HAVE CHANGED THIS
+
+    // console.log(thumnailFileLocalPath);
+    // console.log((videoFileLocalPath));
+    
+    
+
 
     if (!videoFileLocalPath) {
         throw new ApiError(400, "Video local path is required")
@@ -138,9 +147,16 @@ const publishAVideo = asyncHandler(async (req, res) => {
     if (!thumnailFileLocalPath) {
         throw new ApiError(400, "Thumbnail local path is required")
     }
+    console.log(videoFileLocalPath, thumnailFileLocalPath);
+    
 
     const videoFile = await uploadOnCloudinary(videoFileLocalPath)
     const thumbnail = await uploadOnCloudinary(thumnailFileLocalPath)
+
+    console.log(videoFile);
+    console.log(thumbnail);
+    
+    
 
 
     if (!videoFile) {
@@ -150,24 +166,36 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Thumbnail not found")
     }
 
+    // const video = await Video.create({
+    //     title,
+    //     description,
+    //     duration: videoFile.duration,
+    //     videoFile: {
+    //         url: videoFile.url,
+    //         public_id: videoFile.public_id
+    //     },
+    //     thumbnail: {
+    //         url: thumbnail.url,
+    //         public_id: thumbnail.public_id
+    //     },
+    //     owner: req.user?._id,
+    //     isPublished: false
+    // })
+
     const video = await Video.create({
         title,
         description,
         duration: videoFile.duration,
-        videoFile: {
-            url: videoFile.url,
-            public_id: videoFile.public_id
-        },
-        thumbnail: {
-            url: thumbnail.url,
-            public_id: thumbnail.public_id
-        },
+        videoFile: videoFile.url, // Store only the URL
+        thumbnail: thumbnail.url,  // Store only the URL
         owner: req.user?._id,
-        isPublished: false
-    })
+        isPublished: true
+    });
 
 
     const uploadedVideo = await Video.findById(video._id)
+    console.log("Your video has been uploaded successfully");
+    
 
     if (!uploadedVideo) {
         throw new ApiError(400, "Cannot upload video")

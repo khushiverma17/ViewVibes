@@ -10,7 +10,10 @@ import { User } from "../models/user.model.js";
 
 export const verifyJWT = asyncHandler(async(req, _, next) => {
     //access token from cookies but in case of mobile app in which cookies are not there, then get the token from header of postman with key Authorisation and key Bearer <token>
-    try{const token = req.cookies?.accessToken || req.header("Authorisation")?.replace("Bearer ", "")
+    try{
+        console.log("inside jwt verification,");
+        
+        const token = req.cookies?.accessToken || req.header("Authorisation")?.replace("Bearer ", "")
 
     if(!token){
         throw new ApiError(404, "Unauthorised request")
@@ -36,8 +39,5 @@ export const verifyJWT = asyncHandler(async(req, _, next) => {
     next()}catch(error){
         throw new ApiError(401, error?.message || "Invalid access token")
     }
-
-    
-
 
 })

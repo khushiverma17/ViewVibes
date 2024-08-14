@@ -2,6 +2,7 @@
     import { loginUser, logoutUser, registerUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, getUserChannelProfile, getWatchHistory } from "../controllers/user.controller.js";
     import {upload} from "../middlewares/multer.middleware.js"
     import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { publishAVideo } from "../controllers/video.controller.js";
 
     const router = Router()
 
@@ -47,6 +48,20 @@
     //getting details from params url const {username} = req.params
     
     router.route("/c/:username").get(verifyJWT, getUserChannelProfile)
+
+    router.route("/publish-video/:userid/:username").post(
+        upload.fields([
+            {
+                name: "thumbnail",
+                maxCount:1
+            },
+            {
+                name: "video",
+                maxCount:1
+            }
+        ]),
+        verifyJWT, publishAVideo
+    )
 
     router.route("/history").get(verifyJWT, getWatchHistory)
 

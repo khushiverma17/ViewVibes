@@ -41,7 +41,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
     //if data is not from url
     const { fullName, email, username, password } = req.body
-    console.log("Email is ", email)
 
     // if(fullName === ""){
     //     throw new ApiError(400, "fullName is required")
@@ -133,8 +132,12 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "username or email is required")
     }
 
+    // const user = await User.findOne({
+    //     $or: [{ username }, { email }]
+    // })
+
     const user = await User.findOne({
-        $or: [{ username }, { email }]
+        username, email
     })
 
     if (!user) {
@@ -405,7 +408,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 })
 
 const getUserChannelProfile = asyncHandler(async(req, res) => {
-
+    
     const {username} = req.params
     
     if(!username?.trim()){
@@ -559,5 +562,4 @@ export {
     updateUserCoverImage,
     getUserChannelProfile,
     getWatchHistory
-
 }
