@@ -32,7 +32,7 @@ import { publishAVideo } from "../controllers/video.controller.js";
 
     router.route("/refresh-token").post(refreshAccessToken)
 
-    router.route("/change-password").post(verifyJWT, changeCurrentPassword)
+    router.route("/change-password").patch(verifyJWT, changeCurrentPassword)
 
     router.route("/current-user").post(verifyJWT, getCurrentUser)
 
@@ -40,9 +40,9 @@ import { publishAVideo } from "../controllers/video.controller.js";
     // PATCH is one of the methods that can be used to request that a server apply partial modifications to a resource
     router.route("/update-account").patch(verifyJWT, updateAccountDetails)
 
-    router.route("/avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar)
+    router.route("/update-avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar)
 
-    router.route("/cover-image").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage)
+    router.route("/update-coverimage").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage)
 
 
     //getting details from params url const {username} = req.params

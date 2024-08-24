@@ -7,7 +7,7 @@ import { Comment } from "../models/comment.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
-import { uploadOnCloudinary } from "../utils/cloudinary.js"
+import { deleteOnCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js"
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -109,15 +109,15 @@ const getAllVideos = asyncHandler(async (req, res) => {
 const publishAVideo = asyncHandler(async (req, res) => {
     // console.log("Printing request from the frontend");
     console.log("Req.files is: ", req.files);
-    
-    
+
+
     // console.log(req.body);
 
     // console.log(req.files)
-    
+
     const { title, description } = req.body
     // console.log("hello");
-    
+
     // get video, upload to cloudinary, create video
 
     if (!title || !description) {
@@ -125,7 +125,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
     }
     // if(req.files){
     //     console.log(req.files);
-        
+
     // }
 
 
@@ -136,8 +136,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
     // console.log(thumnailFileLocalPath);
     // console.log((videoFileLocalPath));
-    
-    
+
+
 
 
     if (!videoFileLocalPath) {
@@ -148,15 +148,15 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Thumbnail local path is required")
     }
     console.log(videoFileLocalPath, thumnailFileLocalPath);
-    
+
 
     const videoFile = await uploadOnCloudinary(videoFileLocalPath)
     const thumbnail = await uploadOnCloudinary(thumnailFileLocalPath)
 
     console.log(videoFile);
     console.log(thumbnail);
-    
-    
+
+
 
 
     if (!videoFile) {
@@ -195,7 +195,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
     const uploadedVideo = await Video.findById(video._id)
     console.log("Your video has been uploaded successfully");
-    
+
 
     if (!uploadedVideo) {
         throw new ApiError(400, "Cannot upload video")
@@ -351,11 +351,12 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 })
 
+
+
 const updateVideo = asyncHandler(async (req, res) => {
+    console.log(req.files);
+    
     const { videoId } = req.params
-    //update video details like title, description, thumbnail
-
-
     const { title, description } = req.body
 
     if (!videoId) {
@@ -372,23 +373,22 @@ const updateVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Video does not exists")
     }
 
-    if (video?.owner.toString() !== req.user?._id.toString()) {
+    if (video.owner.toString() !== req.user?._id.toString()) {
         throw new ApiError(400, "Only owner can update the video")
     }
 
     //updating the thumbnail
-    const oldThumbnail = video.thumbnail.public_id
-
-    const thumbnailLocalPath = req.file?.path
-
+    const oldThumbnail = video.thumbnail.public_id;
+    console.log(req.files.thumbnail[0].path);
+    const thumbnailLocalPath = req.files.thumbnail[0].path
+    
     if (!thumbnailLocalPath) {
         throw new ApiError(400, "Thumbnail is required`")
     }
 
-    const thumbnail = uploadOnCloudinary(thumbnailLocalPath)
-
-    if (!thumbnail) {
-        throw new ApiError(400, "Cannot update thumbnail")
+    const thumbnail = await uploadOnCloudinary(thumbnailLocalPath)
+    if(!thumbnail.url){
+        throw new ApiError(400, "Error while updating thumbnail")
     }
 
     const updatedVideo = await Video.findByIdAndUpdate(
@@ -397,10 +397,11 @@ const updateVideo = asyncHandler(async (req, res) => {
             $set: {
                 title,
                 description,
-                thumbnail: {
-                    public_id: thumbnail.public_id,
-                    url: thumbnail.url
-                }
+                // thumbnail: {
+                //     // public_id: thumbnail.public_id,
+                //     url: thumbnail.url
+                // }
+                thumbnail: thumbnail.url
             }
         },
         { new: true }
@@ -514,11 +515,95 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
 })
 
+const getAllVideosInApp = asyncHandler(async (req, res) => {
+    const { page = 1, limit = 10, query, sortBy, sortType } = req.query
+
+    const pipeline = [];
+
+    if (query) {
+        pipeline.push({
+            $search: {
+                index: "search-videos",
+                text: {
+                    query: query,
+                    path: ['title', 'description'],
+                }
+            }
+        })
+    }
+
+    if (sortBy && sortType) {
+        pipeline.push({
+            $sort: {
+                [sortBy]: sortType === 'asc' ? 1 : -1,
+            }
+        })
+    }
+    else {
+        pipeline.push({
+            $sort: {
+                createdAt: -1
+            }
+        })
+    }
+
+    // {
+    //     $lookup: {
+    //         from: "users",
+    //         localField: "owner",
+    //         foreignField: "_id",
+    //         as: "ownerDetails",
+    //         pipeline: [
+    //             {
+    //                 $project: {
+    //                     username: 1,
+    //                     "avatar.url": 1
+
+    //                 }
+    //             }
+
+    //         ]
+    //     }
+    // }
+
+    pipeline.push(
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails",
+                pipeline: [
+                    {
+                        $project: {
+                            username: 1,
+                            "avatar.url": 1,
+                        }
+                    }
+                ]
+            }
+        }
+    )
+
+    const videoAggregate = Video.aggregate(pipeline)
+
+    const options = {
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
+    }
+
+    const videos = await Video.aggregatePaginate(videoAggregate, options)
+
+    return res.status(200).json(new ApiResponse(200, videos, "All videos fetched successfully"))
+
+})
+
 export {
     getAllVideos,
     publishAVideo,
     getVideoById,
     updateVideo,
     deleteVideo,
-    togglePublishStatus
+    togglePublishStatus,
+    getAllVideosInApp
 }

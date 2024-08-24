@@ -318,7 +318,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All fields are required")
     }
 
-    const user = User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {
@@ -328,8 +328,16 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         },
         { new: true }
 
-    ).select("-password")
+    ).select("-password").lean() // lean convert to plain json
 
+    console.log("user is : ", user);
+
+    // const userResponse = {
+    //     fullName: user.fullName,
+    //     email: user.email,
+
+    // }
+    
     return res
         .status(200)
         .json(
@@ -337,6 +345,9 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         )
 
 })
+
+
+
 
 //updating files
 const updateUserAvatar = asyncHandler(async (req, res) => {
@@ -375,6 +386,10 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
 
 const updateUserCoverImage = asyncHandler(async (req, res) => {
+    console.log("ha jiiii");
+    
+    console.log(req.file);
+    
     const coverImageLocalPath = req.file?.path
 
     if(!coverImageLocalPath){
@@ -387,7 +402,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Error while uploading coverImage")
     }
 
-    await User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {
