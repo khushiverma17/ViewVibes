@@ -274,7 +274,7 @@ const getVideoById = asyncHandler(async (req, res) => {
                     {
                         $project: {
                             username: 1,
-                            "avatar.url": 1,
+                            avatar: 1,
                             subscribersCount: 1,
                             isSubscribed: 1
                         }
@@ -303,7 +303,7 @@ const getVideoById = asyncHandler(async (req, res) => {
         },
         {
             $project: {
-                "videoFile.url": 1,
+                videoFile: 1,
                 title: 1,
                 description: 1,
                 views: 1,
@@ -426,7 +426,9 @@ const updateVideo = asyncHandler(async (req, res) => {
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
+
     const { videoId } = req.params
+    console.log(videoId)
 
     if (!videoId) {
         throw new ApiError(400, "Video id is not provided")
@@ -585,6 +587,11 @@ const getAllVideosInApp = asyncHandler(async (req, res) => {
         }
     )
 
+// Unwind the ownerDetails array to convert it to an object
+pipeline.push({
+    $unwind: "$ownerDetails"
+});
+
     const videoAggregate = Video.aggregate(pipeline)
 
     const options = {
@@ -597,6 +604,9 @@ const getAllVideosInApp = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, videos, "All videos fetched successfully"))
 
 })
+
+
+
 
 export {
     getAllVideos,

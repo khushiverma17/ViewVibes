@@ -7,6 +7,8 @@ import { asyncHandler } from "../utils/asyncHandler.js"
 import { Video } from "../models/video.model.js"
 
 const getVideoComments = asyncHandler(async (req, res) => {
+    console.log("hdlk");
+
     const { videoId } = req.params
     // It also extracts the page and limit query parameters from the request (req.query)
     //get all comments for a video
@@ -70,14 +72,14 @@ const getVideoComments = asyncHandler(async (req, res) => {
             }
         },
         {
-            $projet: {
+            $project: {
                 content: 1,
                 createdAt: 1,
                 likesCount: 1,
                 owner: {
                     username: 1,
                     fullName: 1,
-                    "avatar.url": 1
+                    avatar: 1
                 },
                 isLiked: 1
             }
@@ -109,6 +111,8 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
 })
 
+
+
 const addComment = asyncHandler(async (req, res) => {
     // add a comment to a video
 
@@ -116,10 +120,13 @@ const addComment = asyncHandler(async (req, res) => {
     const { videoId } = req.params
 
     if (!content) {
-        throw new ApiError(400, "Content is required to delete a comment")
+        throw new ApiError(400, "Content is required to add a comment")
     }
+    console.log("Video id is : ", videoId);
+    console.log("conge", content)
 
-    const video = Video.findById(videoId)
+
+    const video = await Video.findById(videoId)
 
     if (!video) {
         throw new ApiError(400, "Video not found")
@@ -136,10 +143,65 @@ const addComment = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Failed to add comment")
     }
 
+    const newComment = await Comment.aggregate([
+        {
+            $match: {
+                _id: comment._id,
+            },
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "owner",
+                as: "owner",
+            },
+        },
+        {
+            $lookup: {
+                from: "likes",
+                foreignField: "comment",
+                localField: "_id",
+                as: "likes",
+            },
+        },
+        {
+            $addFields: {
+                likesCount: {
+                    $size: "$likes",
+                },
+                owner: {
+                    $arrayElemAt: ["$owner", 0], // Use $arrayElemAt to directly get the first element from the array
+                },
+                isLiked: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$likes.likedBy"] },
+                        then: true,
+                        else: false,
+                    },
+                },
+            },
+        },
+        {
+            $project: {
+                content: 1,
+                createdAt: 1,
+                likesCount: 1,
+                owner: {
+                    username: 1,
+                    fullName: 1,
+                    avatar: 1,
+                },
+                isLiked: 1,
+            },
+        },
+    ]);
+
+
     return res
         .status(200)
         .json(
-            new ApiResponse(201, comment, "Comment added successfully")
+            new ApiResponse(201, newComment[0], "Comment added successfully")
         )
 
 

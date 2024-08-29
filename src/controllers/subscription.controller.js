@@ -8,17 +8,24 @@ import { asyncHandler } from "../utils/asyncHandler.js"
 
 //  toggle subscription
 const toggleSubscription = asyncHandler(async (req, res) => {
-    const { channelId } = req.params
+    // const { channelId } = req.params
+    const { channelId } = req.query
     if (!channelId) {
         throw new ApiError(400, "Channel id is not provided")
     }
+    console.log("REQ", req.user._id);
+    console.log("CHA ID IS ", channelId);
+    const channelObjectId = new mongoose.Types.ObjectId(channelId);
+
 
     const isSubscribed = await Subscription.findOne({
         subscriber: req.user?._id,
-        channel: channelId
+        channel: channelObjectId
     })
 
     if (isSubscribed) {
+        console.log("yes is subscribed");
+
         await Subscription.findByIdAndDelete(isSubscribed?._id)
 
         return res
@@ -27,10 +34,11 @@ const toggleSubscription = asyncHandler(async (req, res) => {
                 new ApiResponse(200, { subscribed: false }, "unsubscribed successfully")
             )
     }
+    console.log("no is subscribed");
 
     await Subscription.create({
         subscriber: req.user?._id,
-        channelId: channelId
+        channel: channelObjectId
     })
 
     return res
@@ -43,7 +51,7 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 
 // controller to return subscriber list of a channel
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
-    const { channelId } = req.params
+    let { channelId } = req.params
 
     if (!channelId) {
         throw new ApiError(2000, "Channel id is not provided")
@@ -68,7 +76,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
                             from: "subscriptions",
                             localField: "_id",
                             foreignField: "channel",
-                            as: subscribedToSubscriber
+                            as: "subscribedToSubscriber"
                         }
                     },
                     {
@@ -103,7 +111,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
                     _id: 1,
                     username: 1,
                     fullName: 1,
-                    "avatar.url": 1,
+                    avatar: 1,
                     subscribedToSubscriber: 1,
                     subscibersCount: 1
                 }
@@ -127,9 +135,11 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
     const { subscriberId } = req.params
+    console.log("ldjf", req.params);
+    
 
     if (!subscriberId) {
-        throw new ApiError(400, "Subscriber is is not provided")
+        throw new ApiError(400, "Subscriber is not provided")
     }
 
     const subscribedChannels = await Subscription.aggregate([
@@ -168,16 +178,16 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
         },
         {
             $project: {
-                _id: 0,
+                _id: 1,
                 subscribedChannel: {
-                    _id: 0,
+                    _id: 1,
                     username: 1,
                     fullName: 1,
-                    "avatar.url": 1,
+                    avatar: 1,
                     latestVideo: {
                         _id: 1,
-                        "videoFile.url": 1,
-                        "thumbnail.url": 1,
+                        videoFile: 1,
+                        thumbnail: 1,
                         owner: 1,
                         title: 1,
                         description: 1,
@@ -203,8 +213,39 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
 
 })
 
+const checkSubscription = asyncHandler(async (req, res) => {
+    const {channelId} = req.query
+
+    if(!channelId){
+        throw new ApiError(400, "Channel id is not provided")
+    }
+    const channelObjectId = new mongoose.Types.ObjectId(channelId);
+
+    const checkSubs = await Subscription.find({
+        channel: channelObjectId,
+        subscriber: req.user?._id
+    })
+
+    if(checkSubs.length > 0){
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(200, {subscribed: true}, "user is subscribed to the channel")
+        )
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, {subscribed: false}, "user is not subscribed to the channel")
+    )
+
+    
+})
+
 export {
     toggleSubscription,
     getUserChannelSubscribers,
-    getSubscribedChannels
+    getSubscribedChannels,
+    checkSubscription
 }

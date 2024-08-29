@@ -7,9 +7,9 @@ const router = Router()
 
 
 // http://localhost:8000/v1/api/comments/video-comments
-router.route("/video-comments").get(verifyJWT, getVideoComments);
+router.route("/video-comments/:videoId").get(verifyJWT, getVideoComments);
 
-router.route("/add-comment").post(verifyJWT, addComment)
+router.route("/add-comment/:videoId").post(verifyJWT, addComment)
 
 router.route("/update-comment").post(verifyJWT, updateComment)
 

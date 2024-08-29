@@ -1,4 +1,4 @@
-import mongoose, { isValidObjectId } from "mongoose"
+import mongoose, { isValidObjectId, mongo } from "mongoose"
 import { Like } from "../models/like.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
@@ -7,9 +7,14 @@ import { asyncHandler } from "../utils/asyncHandler.js"
 const toggleVideoLike = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //toggle like on video
-    const { userId } = req.user
-    if (!videoId || !userId) {
-        throw new ApiError(400, "Video id or user id is not provided")
+    console.log(req.user?._id);
+    
+    const userId = req.user._id
+    if (!videoId) {
+        throw new ApiError(400, "Video id is not provided")
+    }
+    if(!userId){
+        throw new ApiError(400, "User id is not provided")
     }
 
     const like = await Like.findOne({
@@ -40,10 +45,13 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
 const toggleCommentLike = asyncHandler(async (req, res) => {
     const { commentId } = req.params
     // toggle like on comment
-    const { userId } = req.user
+    const userId = req.user
 
-    if (!commentId || !userId) {
-        throw new ApiError(400, "Comment id or user id is not provided")
+    if (!commentId) {
+        throw new ApiError(400, "Comment id is not provided")
+    }
+    if(!userId){
+        throw new ApiError(400, "UserId is not provided")
     }
 
     const comment = await Like.findOne({
@@ -52,8 +60,9 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     })
 
     if (comment) {
-        await Comment.deleteOne({
-            _id: comment._id
+        await Like.deleteOne({
+            // _id: comment._id
+            comment:comment._id
         })
     } else {
         const newComment = new Like({
@@ -134,13 +143,13 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                         }
                     },
                     {
-                        $unwind: "ownerDetails"
+                        $unwind: "$ownerDetails"
                     }
                 ]
             }
         },
         {
-            $unwind: "likedVideo"
+            $unwind: "$likedVideo"
         },
         {
             $sort: {
@@ -149,14 +158,15 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         },
         {
             $project: {
-                _id: 0,
+                _id: 1,
                 likedVideo: {
                     _id: 1,
-                    "videoFile.url": 1,
-                    "thumbnail.url": 1,
+                    videoFile: 1,
+                    thumbnail: 1,
                     owner: 1,
                     title: 1,
                     description: 1,
+                    // thumbnail: 1, 
                     views: 1,
                     duration: 1,
                     createdAt: 1,
@@ -164,7 +174,8 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                     ownerDetails: {
                         username: 1,
                         fullName: 1,
-                        "avatar.url": 1
+                        avatar: 1,
+                        _id: 1
                     }
                 }
             }
@@ -178,9 +189,80 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         )
 })
 
+const checkLikeStatus = asyncHandler(async (req, res) => {
+    const { videoId } = req.params
+    const userId = req.user._id
+
+    const likedVideo = await Like.aggregate([
+        {
+            $match: {
+                likedBy: new mongoose.Types.ObjectId(req.user?._id),
+                video: new mongoose.Types.ObjectId(videoId)
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "video",
+                foreignField: "_id",
+                as: "likedVideo"
+
+            }
+        },
+        {
+            $unwind: "$likedVideo"
+        },
+        {
+            $lookup:{
+                from: "users",
+                localField: "likedVideo.owner",
+                foreignField: "_id",
+                as: "ownerDetails",
+            }
+        },
+        {
+            $unwind:"$ownerDetails"
+        },
+        {
+            $project: {
+                _id: 0,
+                likedVideo: {
+                    _id: 1,
+                    title: 1,
+                    description: 1,
+                    "thumbnail.url": 1,
+                    "videoFile.url": 1,
+                    owner: 1,
+                    views: 1,
+                    duration: 1,
+                    createdAt: 1,
+                    isPublished: 1,
+                    ownerDetails: {
+                        username: 1,
+                        fullName: 1,
+                        "avatar.url": 1,
+                    }
+                }
+            }
+        }
+    ])
+
+    if (likedVideo.length > 0) {
+        return res.status(200).json(
+            new ApiResponse(200, { isLiked: true, likedVideo: likedVideo[0].likedVideo }, "Video is liked by the user")
+        );
+    } else {
+        return res.status(200).json(
+            new ApiResponse(200, { isLiked: false }, "Video is not liked by the user")
+        );
+    }
+
+})
+
 export {
     toggleCommentLike,
     toggleTweetLike,
     toggleVideoLike,
-    getLikedVideos
+    getLikedVideos, 
+    checkLikeStatus
 }
